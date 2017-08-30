@@ -22,21 +22,22 @@ use Symfony\Component\Translation\TranslatorInterface;
 /**
  * @author Thomas Rabaix <thomas.rabaix@sonata-project.org>
  */
-final class SonataAdminExtension extends \Twig_Extension
+class SonataAdminExtension extends \Twig_Extension
 {
-    /**
-     * @var TranslatorInterface|null
-     */
-    protected $translator;
     /**
      * @var Pool
      */
-    private $pool;
+    protected $pool;
 
     /**
      * @var LoggerInterface
      */
-    private $logger;
+    protected $logger;
+
+    /**
+     * @var TranslatorInterface|null
+     */
+    protected $translator;
 
     /**
      * @var string[]
@@ -146,6 +147,80 @@ final class SonataAdminExtension extends \Twig_Extension
             'value' => $this->getValueFromFieldDescription($object, $fieldDescription),
             'field_description' => $fieldDescription,
         )), $environment);
+    }
+
+    /**
+     * @param FieldDescriptionInterface $fieldDescription
+     * @param \Twig_Template            $template
+     * @param array                     $parameters
+     *
+     * @return string
+     */
+    public function output(
+        FieldDescriptionInterface $fieldDescription,
+        \Twig_Template $template,
+        array $parameters,
+        \Twig_Environment $environment
+    ) {
+        $content = $template->render($parameters);
+
+        if ($environment->isDebug()) {
+            $commentTemplate = <<<'EOT'
+
+<!-- START
+    fieldName: %s
+    template: %s
+    compiled template: %s
+    -->
+    %s
+<!-- END - fieldName: %s -->
+EOT;
+
+            return sprintf(
+                $commentTemplate,
+                $fieldDescription->getFieldName(),
+                $fieldDescription->getTemplate(),
+                $template->getTemplateName(),
+                $content,
+                $fieldDescription->getFieldName()
+            );
+        }
+
+        return $content;
+    }
+
+    /**
+     * return the value related to FieldDescription, if the associated object does no
+     * exists => a temporary one is created.
+     *
+     * @param object                    $object
+     * @param FieldDescriptionInterface $fieldDescription
+     * @param array                     $params
+     *
+     * @throws \RuntimeException
+     *
+     * @return mixed
+     */
+    public function getValueFromFieldDescription(
+        $object,
+        FieldDescriptionInterface $fieldDescription,
+        array $params = array()
+    ) {
+        if (isset($params['loop']) && $object instanceof \ArrayAccess) {
+            throw new \RuntimeException('remove the loop requirement');
+        }
+
+        $value = null;
+
+        try {
+            $value = $fieldDescription->getValue($object);
+        } catch (NoValueException $e) {
+            if ($fieldDescription->getAssociationAdmin()) {
+                $value = $fieldDescription->getAssociationAdmin()->getNewInstance();
+            }
+        }
+
+        return $value;
     }
 
     /**
@@ -350,7 +425,7 @@ final class SonataAdminExtension extends \Twig_Extension
                     if ($catalogue) {
                         if (null !== $this->translator) {
                             $text = $this->translator->trans($text, array(), $catalogue);
-                        // NEXT_MAJOR: Remove this check
+                            // NEXT_MAJOR: Remove this check
                         } elseif (method_exists($fieldDescription->getAdmin(), 'trans')) {
                             $text = $fieldDescription->getAdmin()->trans($text, array(), $catalogue);
                         }
@@ -368,79 +443,6 @@ final class SonataAdminExtension extends \Twig_Extension
     }
 
     /**
-     * @param FieldDescriptionInterface $fieldDescription
-     * @param \Twig_Template            $template
-     * @param array                     $parameters
-     *
-     * @return string
-     */
-    private function output(
-        FieldDescriptionInterface $fieldDescription,
-        \Twig_Template $template,
-        array $parameters,
-        \Twig_Environment $environment
-    ) {
-        $content = $template->render($parameters);
-
-        if ($environment->isDebug()) {
-            $commentTemplate = <<<'EOT'
-
-<!-- START
-    fieldName: %s
-    template: %s
-    compiled template: %s
-    -->
-    %s
-<!-- END - fieldName: %s -->
-EOT;
-
-            return sprintf(
-                $commentTemplate,
-                $fieldDescription->getFieldName(),
-                $fieldDescription->getTemplate(),
-                $template->getTemplateName(),
-                $content,
-                $fieldDescription->getFieldName()
-            );
-        }
-
-        return $content;
-    }
-
-    /**
-     * return the value related to FieldDescription, if the associated object does no
-     * exists => a temporary one is created.
-     *
-     * @param object                    $object
-     * @param FieldDescriptionInterface $fieldDescription
-     * @param array                     $params
-     *
-     * @throws \RuntimeException
-     *
-     * @return mixed
-     */
-    private function getValueFromFieldDescription(
-        $object,
-        FieldDescriptionInterface $fieldDescription,
-        array $params = array()
-    ) {
-        if (isset($params['loop']) && $object instanceof \ArrayAccess) {
-            throw new \RuntimeException('remove the loop requirement');
-        }
-
-        $value = null;
-        try {
-            $value = $fieldDescription->getValue($object);
-        } catch (NoValueException $e) {
-            if ($fieldDescription->getAssociationAdmin()) {
-                $value = $fieldDescription->getAssociationAdmin()->getNewInstance();
-            }
-        }
-
-        return $value;
-    }
-
-    /**
      * Get template.
      *
      * @param FieldDescriptionInterface $fieldDescription
@@ -448,13 +450,35 @@ EOT;
      *
      * @return \Twig_TemplateInterface
      */
-    private function getTemplate(
+    protected function getTemplate(
         FieldDescriptionInterface $fieldDescription,
         $defaultTemplate,
         \Twig_Environment $environment
     ) {
         $templateName = $fieldDescription->getTemplate() ?: $defaultTemplate;
 
-        return $environment->loadTemplate($templateName);
+        try {
+            $template = $environment->loadTemplate($templateName);
+        } catch (\Twig_Error_Loader $e) {
+            @trigger_error(
+                'Relying on default template loading on field template loading exception '.
+                'is deprecated since 3.1 and will be removed in 4.0. '.
+                'A \Twig_Error_Loader exception will be thrown instead',
+                E_USER_DEPRECATED
+            );
+            $template = $environment->loadTemplate($defaultTemplate);
+
+            if (null !== $this->logger) {
+                $this->logger->warning(sprintf(
+                    'An error occured trying to load the template "%s" for the field "%s", '.
+                    'the default template "%s" was used instead.',
+                    $templateName,
+                    $fieldDescription->getFieldName(),
+                    $defaultTemplate
+                ), array('exception' => $e));
+            }
+        }
+
+        return $template;
     }
 }

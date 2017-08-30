@@ -335,6 +335,15 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
     protected $routeGenerator;
 
     /**
+     * The generated breadcrumbs.
+     *
+     * NEXT_MAJOR : remove this property
+     *
+     * @var array
+     */
+    protected $breadcrumbs = array();
+
+    /**
      * @var SecurityHandlerInterface
      */
     protected $securityHandler = null;
@@ -523,6 +532,13 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
     private $managerType;
 
     /**
+     * The breadcrumbsBuilder component.
+     *
+     * @var BreadcrumbsBuilderInterface
+     */
+    private $breadcrumbsBuilder;
+
+    /**
      * @param string $code
      * @param string $class
      * @param string $baseControllerName
@@ -550,7 +566,7 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return array
      */
     public function getExportFields()
     {
@@ -610,6 +626,13 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
         $this->baseCodeRoute = $this->getCode();
 
         $this->configure();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function configure()
+    {
     }
 
     /**
@@ -779,6 +802,72 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function buildDatagrid()
+    {
+        if ($this->datagrid) {
+            return;
+        }
+
+        $filterParameters = $this->getFilterParameters();
+
+        // transform _sort_by from a string to a FieldDescriptionInterface for the datagrid.
+        if (isset($filterParameters['_sort_by']) && is_string($filterParameters['_sort_by'])) {
+            if ($this->hasListFieldDescription($filterParameters['_sort_by'])) {
+                $filterParameters['_sort_by'] = $this->getListFieldDescription($filterParameters['_sort_by']);
+            } else {
+                $filterParameters['_sort_by'] = $this->getModelManager()->getNewFieldDescriptionInstance(
+                    $this->getClass(),
+                    $filterParameters['_sort_by'],
+                    array()
+                );
+
+                $this->getListBuilder()->buildField(null, $filterParameters['_sort_by'], $this);
+            }
+        }
+
+        // initialize the datagrid
+        $this->datagrid = $this->getDatagridBuilder()->getBaseDatagrid($this, $filterParameters);
+
+        $this->datagrid->getPager()->setMaxPageLinks($this->maxPageLinks);
+
+        $mapper = new DatagridMapper($this->getDatagridBuilder(), $this->datagrid, $this);
+
+        // build the datagrid filter
+        $this->configureDatagridFilters($mapper);
+
+        // ok, try to limit to add parent filter
+        if ($this->isChild() && $this->getParentAssociationMapping() && !$mapper->has($this->getParentAssociationMapping())) {
+            // NEXT_MAJOR: Keep FQCN when bumping Symfony requirement to 2.8+.
+            $modelHiddenType = method_exists('Symfony\Component\Form\AbstractType', 'getBlockPrefix')
+                ? 'Sonata\AdminBundle\Form\Type\ModelHiddenType'
+                : 'sonata_type_model_hidden';
+
+            // NEXT_MAJOR: Keep FQCN when bumping Symfony requirement to 2.8+.
+            $hiddenType = method_exists('Symfony\Component\Form\AbstractType', 'getBlockPrefix')
+                ? 'Symfony\Component\Form\Extension\Core\Type\HiddenType'
+                : 'hidden';
+
+            $mapper->add($this->getParentAssociationMapping(), null, array(
+                'show_filter' => false,
+                'label' => false,
+                'field_type' => $modelHiddenType,
+                'field_options' => array(
+                    'model_manager' => $this->getModelManager(),
+                ),
+                'operator_type' => $hiddenType,
+            ), null, null, array(
+                'admin_code' => $this->getParent()->getCode(),
+            ));
+        }
+
+        foreach ($this->getExtensions() as $extension) {
+            $extension->configureDatagridFilters($mapper);
+        }
+    }
+
+    /**
      * Returns the name of the parent related field, so the field can be use to set the default
      * value (ie the parent object) or to filter the object.
      *
@@ -877,6 +966,19 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
         }
 
         return $this->cachedBaseRouteName;
+    }
+
+    /**
+     * urlize the given word.
+     *
+     * @param string $word
+     * @param string $sep  the separator
+     *
+     * @return string
+     */
+    public function urlize($word, $sep = '_')
+    {
+        return strtolower(preg_replace('/[^a-z0-9_]/i', $sep.'$1', $word));
     }
 
     /**
@@ -989,7 +1091,7 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
     /**
      * {@inheritdoc}
      */
-    final public function getBatchActions()
+    public function getBatchActions()
     {
         $actions = array();
 
@@ -1004,7 +1106,10 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
         $actions = $this->configureBatchActions($actions);
 
         foreach ($this->getExtensions() as $extension) {
-            $actions = $extension->configureBatchActions($this, $actions);
+            // TODO: remove method check in next major release
+            if (method_exists($extension, 'configureBatchActions')) {
+                $actions = $extension->configureBatchActions($this, $actions);
+            }
         }
 
         foreach ($actions  as $name => &$action) {
@@ -1110,7 +1215,7 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @param array $templates
      */
     public function setTemplates(array $templates)
     {
@@ -1118,7 +1223,8 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @param string $name
+     * @param string $template
      */
     public function setTemplate($name, $template)
     {
@@ -1126,7 +1232,7 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return array
      */
     public function getTemplates()
     {
@@ -1311,6 +1417,14 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function buildSideMenu($action, AdminInterface $childAdmin = null)
+    {
+        return $this->buildTabMenu($action, $childAdmin);
+    }
+
+    /**
      * @param string         $action
      * @param AdminInterface $childAdmin
      *
@@ -1322,7 +1436,7 @@ abstract class AbstractAdmin implements AdminInterface, DomainObjectInterface
             return $this->getParent()->getSideMenu($action, $this);
         }
 
-        $this->buildTabMenu($action, $childAdmin);
+        $this->buildSideMenu($action, $childAdmin);
 
         return $this->menu;
     }
@@ -1574,7 +1688,7 @@ EOT;
      */
     public function getSubject()
     {
-        if ($this->subject === null && $this->request) {
+        if ($this->subject === null && $this->request && !$this->hasParentFieldDescription()) {
             $id = $this->request->get($this->getIdParameter());
             $this->subject = $this->getModelManager()->find($this->class, $id);
         }
@@ -1864,7 +1978,9 @@ EOT;
     }
 
     /**
-     * {@inheritdoc}
+     * Returns the classname label.
+     *
+     * @return string the classname label
      */
     public function getClassnameLabel()
     {
@@ -1892,13 +2008,94 @@ EOT;
     }
 
     /**
-     * {@inheritdoc}
+     * @param string $name
+     *
+     * @return null|mixed
      */
     public function getPersistentParameter($name)
     {
         $parameters = $this->getPersistentParameters();
 
         return isset($parameters[$name]) ? $parameters[$name] : null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getBreadcrumbs($action)
+    {
+        @trigger_error(
+            'The '.__METHOD__.' method is deprecated since version 3.2 and will be removed in 4.0.'.
+            ' Use Sonata\AdminBundle\Admin\BreadcrumbsBuilder::getBreadcrumbs instead.',
+            E_USER_DEPRECATED
+        );
+
+        return $this->getBreadcrumbsBuilder()->getBreadcrumbs($this, $action);
+    }
+
+    /**
+     * Generates the breadcrumbs array.
+     *
+     * Note: the method will be called by the top admin instance (parent => child)
+     *
+     * @param string             $action
+     * @param ItemInterface|null $menu
+     *
+     * @return array
+     */
+    public function buildBreadcrumbs($action, MenuItemInterface $menu = null)
+    {
+        @trigger_error(
+            'The '.__METHOD__.' method is deprecated since version 3.2 and will be removed in 4.0.',
+            E_USER_DEPRECATED
+        );
+
+        if (isset($this->breadcrumbs[$action])) {
+            return $this->breadcrumbs[$action];
+        }
+
+        return $this->breadcrumbs[$action] = $this->getBreadcrumbsBuilder()
+            ->buildBreadcrumbs($this, $action, $menu);
+    }
+
+    /**
+     * NEXT_MAJOR : remove this method.
+     *
+     * @return BreadcrumbsBuilderInterface
+     */
+    final public function getBreadcrumbsBuilder()
+    {
+        @trigger_error(
+            'The '.__METHOD__.' method is deprecated since version 3.2 and will be removed in 4.0.'.
+            ' Use the sonata.admin.breadcrumbs_builder service instead.',
+            E_USER_DEPRECATED
+        );
+        if ($this->breadcrumbsBuilder === null) {
+            $this->breadcrumbsBuilder = new BreadcrumbsBuilder(
+                $this->getConfigurationPool()->getContainer()->getParameter('sonata.admin.configuration.breadcrumbs')
+            );
+        }
+
+        return $this->breadcrumbsBuilder;
+    }
+
+    /**
+     * NEXT_MAJOR : remove this method.
+     *
+     * @param BreadcrumbsBuilderInterface
+     *
+     * @return AbstractAdmin
+     */
+    final public function setBreadcrumbsBuilder(BreadcrumbsBuilderInterface $value)
+    {
+        @trigger_error(
+            'The '.__METHOD__.' method is deprecated since version 3.2 and will be removed in 4.0.'.
+            ' Use the sonata.admin.breadcrumbs_builder service instead.',
+            E_USER_DEPRECATED
+        );
+        $this->breadcrumbsBuilder = $value;
+
+        return $this;
     }
 
     /**
@@ -2627,7 +2824,12 @@ EOT;
     }
 
     /**
-     * {@inheritdoc}
+     * Hook to handle access authorization, without throw Exception.
+     *
+     * @param string $action
+     * @param object $object
+     *
+     * @return bool
      */
     public function hasAccess($action, $object = null)
     {
@@ -2653,15 +2855,15 @@ EOT;
     /**
      * {@inheritdoc}
      */
-    final public function getActionButtons($action, $object = null)
+    public function configureActionButtons($action, $object = null)
     {
-        $buttonList = array();
+        $list = array();
 
         if (in_array($action, array('tree', 'show', 'edit', 'delete', 'list', 'batch'))
             && $this->hasAccess('create')
             && $this->hasRoute('create')
         ) {
-            $buttonList['create'] = array(
+            $list['create'] = array(
                 'template' => $this->getTemplate('button_create'),
             );
         }
@@ -2670,7 +2872,7 @@ EOT;
             && $this->canAccessObject('edit', $object)
             && $this->hasRoute('edit')
         ) {
-            $buttonList['edit'] = array(
+            $list['edit'] = array(
                 'template' => $this->getTemplate('button_edit'),
             );
         }
@@ -2679,7 +2881,7 @@ EOT;
             && $this->canAccessObject('history', $object)
             && $this->hasRoute('history')
         ) {
-            $buttonList['history'] = array(
+            $list['history'] = array(
                 'template' => $this->getTemplate('button_history'),
             );
         }
@@ -2689,7 +2891,7 @@ EOT;
             && $this->canAccessObject('acl', $object)
             && $this->hasRoute('acl')
         ) {
-            $buttonList['acl'] = array(
+            $list['acl'] = array(
                 'template' => $this->getTemplate('button_acl'),
             );
         }
@@ -2699,7 +2901,7 @@ EOT;
             && count($this->getShow()) > 0
             && $this->hasRoute('show')
         ) {
-            $buttonList['show'] = array(
+            $list['show'] = array(
                 'template' => $this->getTemplate('button_show'),
             );
         }
@@ -2708,22 +2910,38 @@ EOT;
             && $this->hasAccess('list')
             && $this->hasRoute('list')
         ) {
-            $buttonList['list'] = array(
+            $list['list'] = array(
                 'template' => $this->getTemplate('button_list'),
             );
         }
 
-        $buttonList = $this->configureActionButtons($buttonList, $action, $object);
-
-        foreach ($this->getExtensions() as $extension) {
-            $buttonList = $extension->configureActionButtons($this, $buttonList, $action, $object);
-        }
-
-        return $buttonList;
+        return $list;
     }
 
     /**
-     * {@inheritdoc}
+     * @param string $action
+     * @param mixed  $object
+     *
+     * @return array
+     */
+    public function getActionButtons($action, $object = null)
+    {
+        $list = $this->configureActionButtons($action, $object);
+
+        foreach ($this->getExtensions() as $extension) {
+            // TODO: remove method check in next major release
+            if (method_exists($extension, 'configureActionButtons')) {
+                $list = $extension->configureActionButtons($this, $list, $action, $object);
+            }
+        }
+
+        return $list;
+    }
+
+    /**
+     * Get the list of actions that can be accessed directly from the dashboard.
+     *
+     * @return array
      */
     public function getDashboardActions()
     {
@@ -2752,7 +2970,10 @@ EOT;
     }
 
     /**
-     * {@inheritdoc}
+     * Setting to true will enable mosaic button for the admin screen.
+     * Setting to false will hide mosaic button for the admin screen.
+     *
+     * @param bool $isShown
      */
     final public function showMosaicButton($isShown)
     {
@@ -2764,7 +2985,7 @@ EOT;
     }
 
     /**
-     * {@inheritdoc}
+     * @param FormMapper $form
      */
     final public function getSearchResultLink($object)
     {
@@ -2807,26 +3028,6 @@ EOT;
     public function canAccessObject($action, $object)
     {
         return $object && $this->id($object) && $this->hasAccess($action, $object);
-    }
-
-    /**
-     * Hook to run after initilization.
-     */
-    protected function configure()
-    {
-    }
-
-    /**
-     * urlize the given word.
-     *
-     * @param string $word
-     * @param string $sep  the separator
-     *
-     * @return string
-     */
-    final protected function urlize($word, $sep = '_')
-    {
-        return strtolower(preg_replace('/[^a-z0-9_]/i', $sep.'$1', $word));
     }
 
     /**
@@ -2886,30 +3087,16 @@ EOT;
     }
 
     /**
-     * Configure buttons for an action.
+     * Allows you to customize batch actions.
      *
-     * @param array  $buttonList List of all action buttons
-     * @param string $action     Current action route
-     * @param object $object     Current object
+     * @param array $actions List of actions
      *
      * @return array
      */
-    protected function configureActionButtons($buttonList, $action, $object = null)
+    protected function configureBatchActions($actions)
     {
-        return $buttonList;
+        return $actions;
     }
-
-     /**
-      * Allows you to customize batch actions.
-      *
-      * @param array $actions List of actions
-      *
-      * @return array
-      */
-     protected function configureBatchActions($actions)
-     {
-         return $actions;
-     }
 
     /**
      * NEXT_MAJOR: remove this method.
@@ -3137,7 +3324,10 @@ EOT;
         ), $this->getAccessMapping());
 
         foreach ($this->extensions as $extension) {
-            $access = array_merge($access, $extension->getAccessMapping($this));
+            // TODO: remove method check in next major release
+            if (method_exists($extension, 'getAccessMapping')) {
+                $access = array_merge($access, $extension->getAccessMapping($this));
+            }
         }
 
         return $access;
@@ -3150,62 +3340,6 @@ EOT;
      */
     protected function configureDefaultFilterValues(array &$filterValues)
     {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    private function buildDatagrid()
-    {
-        if ($this->datagrid) {
-            return;
-        }
-
-        $filterParameters = $this->getFilterParameters();
-
-        // transform _sort_by from a string to a FieldDescriptionInterface for the datagrid.
-        if (isset($filterParameters['_sort_by']) && is_string($filterParameters['_sort_by'])) {
-            if ($this->hasListFieldDescription($filterParameters['_sort_by'])) {
-                $filterParameters['_sort_by'] = $this->getListFieldDescription($filterParameters['_sort_by']);
-            } else {
-                $filterParameters['_sort_by'] = $this->getModelManager()->getNewFieldDescriptionInstance(
-                    $this->getClass(),
-                    $filterParameters['_sort_by'],
-                    array()
-                );
-
-                $this->getListBuilder()->buildField(null, $filterParameters['_sort_by'], $this);
-            }
-        }
-
-        // initialize the datagrid
-        $this->datagrid = $this->getDatagridBuilder()->getBaseDatagrid($this, $filterParameters);
-
-        $this->datagrid->getPager()->setMaxPageLinks($this->maxPageLinks);
-
-        $mapper = new DatagridMapper($this->getDatagridBuilder(), $this->datagrid, $this);
-
-        // build the datagrid filter
-        $this->configureDatagridFilters($mapper);
-
-        // ok, try to limit to add parent filter
-        if ($this->isChild() && $this->getParentAssociationMapping() && !$mapper->has($this->getParentAssociationMapping())) {
-            $mapper->add($this->getParentAssociationMapping(), null, array(
-                'show_filter' => false,
-                'label' => false,
-                'field_type' => 'sonata_type_model_hidden',
-                'field_options' => array(
-                    'model_manager' => $this->getModelManager(),
-                ),
-                'operator_type' => 'hidden',
-            ), null, null, array(
-                'admin_code' => $this->getParent()->getCode(),
-            ));
-        }
-
-        foreach ($this->getExtensions() as $extension) {
-            $extension->configureDatagridFilters($mapper);
-        }
     }
 
     /**
