@@ -109,7 +109,8 @@ class GroupMenuProvider implements MenuProviderInterface
                     $label = $admin->getLabel();
                     $options = $admin->generateMenuUrl('list', array(), $item['route_absolute']);
                     $options['extras'] = array(
-                        'label_catalogue' => $admin->getTranslationDomain(),
+                        'label_catalogue'    => $admin->getTranslationDomain(),
+                        'translation_domain' => $admin->getTranslationDomain(),
                         'admin' => $admin,
                     );
                 } else {
