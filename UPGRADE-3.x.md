@@ -1,6 +1,34 @@
 UPGRADE 3.x
 ===========
 
+UPGRADE FROM 3.27 to 3.28
+=========================
+
+## Deprecated ChildrenVoter and service
+
+The feature provided by this class was replaced with something much more simple, and you should not rely on it anymore,
+as well as on the `sonata.admin.menu.matcher.voter.children` service.
+
+UPGRADE FROM 3.26 to 3.27
+=========================
+
+## Deprecated CRUDController::render()
+
+Call `CRUDController::renderWithExtraParams()` instead.
+
+UPGRADE FROM 3.23 to 3.24
+=========================
+
+## Deprecated AbstractAdmin::setBaseCodeRoute() and AbstractAdmin::baseCodeRoute property
+
+The `AbstractAdmin::baseCodeRoute` property is no longer supported.
+Please use the `AbstractAdmin::getBaseCodeRoute()` method instead.
+
+The `AbstractAdmin::setBaseCodeRoute()` method is no longer supported.
+There is no replacement for this method.
+You can still use the `AbstractAdmin::setCode()` method to set the code
+of an admin.
+
 UPGRADE FROM 3.20 to 3.21
 =========================
 
