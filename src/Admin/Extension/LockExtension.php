@@ -15,6 +15,7 @@ use Sonata\AdminBundle\Admin\AbstractAdminExtension;
 use Sonata\AdminBundle\Admin\AdminInterface;
 use Sonata\AdminBundle\Form\FormMapper;
 use Sonata\AdminBundle\Model\LockInterface;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 
@@ -28,18 +29,12 @@ class LockExtension extends AbstractAdminExtension
      */
     protected $fieldName = '_lock_version';
 
-    /**
-     * {@inheritdoc}
-     */
     public function configureFormFields(FormMapper $form)
     {
         $admin = $form->getAdmin();
         $formBuilder = $form->getFormBuilder();
 
-        // PHP 5.3 BC
-        $fieldName = $this->fieldName;
-
-        $formBuilder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use ($admin, $fieldName) {
+        $formBuilder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use ($admin) {
             $data = $event->getData();
             $form = $event->getForm();
 
@@ -57,23 +52,13 @@ class LockExtension extends AbstractAdminExtension
                 return;
             }
 
-            $form->add(
-                $fieldName,
-                // NEXT_MAJOR: remove the check and add the FQCN
-                method_exists('Symfony\Component\Form\AbstractType', 'getBlockPrefix')
-                    ? 'Symfony\Component\Form\Extension\Core\Type\HiddenType'
-                    : 'hidden',
-                [
-                    'mapped' => false,
-                    'data' => $lockVersion,
-                ]
-            );
+            $form->add($this->fieldName, HiddenType::class, [
+                'mapped' => false,
+                'data' => $lockVersion,
+            ]);
         });
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function preUpdate(AdminInterface $admin, $object)
     {
         if (!$admin->hasRequest() || !$data = $admin->getRequest()->get($admin->getUniqid())) {

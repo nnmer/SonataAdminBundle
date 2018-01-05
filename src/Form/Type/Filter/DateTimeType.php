@@ -14,6 +14,7 @@ namespace Sonata\AdminBundle\Form\Type\Filter;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType as FormChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormTypeInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 use Symfony\Component\Translation\TranslatorInterface;
@@ -46,9 +47,6 @@ class DateTimeType extends AbstractType
      */
     protected $translator;
 
-    /**
-     * @param TranslatorInterface $translator
-     */
     public function __construct(TranslatorInterface $translator)
     {
         $this->translator = $translator;
@@ -64,17 +62,11 @@ class DateTimeType extends AbstractType
         return $this->getBlockPrefix();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getBlockPrefix()
     {
         return 'sonata_type_filter_datetime';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $choices = [
@@ -90,19 +82,11 @@ class DateTimeType extends AbstractType
             'required' => false,
         ];
 
-        // NEXT_MAJOR: Remove (when requirement of Symfony is >= 2.7)
-        if (!method_exists('Symfony\Component\Form\AbstractType', 'configureOptions')) {
-            $choices = array_flip($choices);
-            foreach ($choices as $key => $value) {
-                $choices[$key] = $this->translator->trans($value, [], 'SonataAdminBundle');
-            }
-        } else {
-            $choiceOptions['choice_translation_domain'] = 'SonataAdminBundle';
+        $choiceOptions['choice_translation_domain'] = 'SonataAdminBundle';
 
-            // NEXT_MAJOR: Remove (when requirement of Symfony is >= 3.0)
-            if (method_exists('Symfony\Component\Form\FormTypeInterface', 'setDefaultOptions')) {
-                $choiceOptions['choices_as_values'] = true;
-            }
+        // NEXT_MAJOR: Remove (when requirement of Symfony is >= 3.0)
+        if (method_exists(FormTypeInterface::class, 'setDefaultOptions')) {
+            $choiceOptions['choices_as_values'] = true;
         }
 
         $choiceOptions['choices'] = $choices;
@@ -123,9 +107,6 @@ class DateTimeType extends AbstractType
         $this->configureOptions($resolver);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults([

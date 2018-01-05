@@ -76,11 +76,6 @@ class CRUDController implements ContainerAwareInterface
         throw new \LogicException('Call to undefined method '.__CLASS__.'::'.$method);
     }
 
-    /**
-     * Sets the Container associated with this Controller.
-     *
-     * @param ContainerInterface $container A ContainerInterface instance
-     */
     public function setContainer(ContainerInterface $container = null)
     {
         $this->container = $container;
@@ -93,9 +88,8 @@ class CRUDController implements ContainerAwareInterface
      *
      * @see renderWithExtraParams()
      *
-     * @param string   $view       The view name
-     * @param array    $parameters An array of parameters to pass to the view
-     * @param Response $response   A response instance
+     * @param string $view       The view name
+     * @param array  $parameters An array of parameters to pass to the view
      *
      * @return Response A Response instance
      *
@@ -103,15 +97,18 @@ class CRUDController implements ContainerAwareInterface
      */
     public function render($view, array $parameters = [], Response $response = null)
     {
+        @trigger_error(
+            'Method '.__CLASS__.'::render has been renamed to '.__CLASS__.'::renderWithExtraParams.',
+            E_USER_DEPRECATED
+        );
+
         return $this->renderWithExtraParams($view, $parameters, $response);
     }
 
     /**
      * Renders a view while passing mandatory parameters on to the template.
      *
-     * @param string   $view       The view name
-     * @param array    $parameters An array of parameters to pass to the view
-     * @param Response $response   A response instance
+     * @param string $view The view name
      *
      * @return Response A Response instance
      */
@@ -137,9 +134,9 @@ class CRUDController implements ContainerAwareInterface
     /**
      * List action.
      *
-     * @return Response
-     *
      * @throws AccessDeniedException If access is not granted
+     *
+     * @return Response
      */
     public function listAction()
     {
@@ -176,11 +173,9 @@ class CRUDController implements ContainerAwareInterface
     /**
      * Execute a batch delete.
      *
-     * @param ProxyQueryInterface $query
+     * @throws AccessDeniedException If access is not granted
      *
      * @return RedirectResponse
-     *
-     * @throws AccessDeniedException If access is not granted
      */
     public function batchActionDelete(ProxyQueryInterface $query)
     {
@@ -210,10 +205,10 @@ class CRUDController implements ContainerAwareInterface
      *
      * @param int|string|null $id
      *
-     * @return Response|RedirectResponse
-     *
      * @throws NotFoundHttpException If the object does not exist
      * @throws AccessDeniedException If access is not granted
+     *
+     * @return Response|RedirectResponse
      */
     public function deleteAction($id)
     {
@@ -285,10 +280,10 @@ class CRUDController implements ContainerAwareInterface
      *
      * @param int|string|null $id
      *
-     * @return Response|RedirectResponse
-     *
      * @throws NotFoundHttpException If the object does not exist
      * @throws AccessDeniedException If access is not granted
+     *
+     * @return Response|RedirectResponse
      */
     public function editAction($id = null)
     {
@@ -399,10 +394,10 @@ class CRUDController implements ContainerAwareInterface
     /**
      * Batch action.
      *
-     * @return Response|RedirectResponse
-     *
      * @throws NotFoundHttpException If the HTTP method is not POST
      * @throws \RuntimeException     If the batch action is not defined
+     *
+     * @return Response|RedirectResponse
      */
     public function batchAction()
     {
@@ -528,9 +523,9 @@ class CRUDController implements ContainerAwareInterface
     /**
      * Create action.
      *
-     * @return Response
-     *
      * @throws AccessDeniedException If access is not granted
+     *
+     * @return Response
      */
     public function createAction()
     {
@@ -645,10 +640,10 @@ class CRUDController implements ContainerAwareInterface
      *
      * @param int|string|null $id
      *
-     * @return Response
-     *
      * @throws NotFoundHttpException If the object does not exist
      * @throws AccessDeniedException If access is not granted
+     *
+     * @return Response
      */
     public function showAction($id = null)
     {
@@ -682,10 +677,10 @@ class CRUDController implements ContainerAwareInterface
      *
      * @param int|string|null $id
      *
-     * @return Response
-     *
      * @throws AccessDeniedException If access is not granted
      * @throws NotFoundHttpException If the object does not exist or the audit reader is not available
+     *
+     * @return Response
      */
     public function historyAction($id = null)
     {
@@ -729,10 +724,10 @@ class CRUDController implements ContainerAwareInterface
      * @param int|string|null $id
      * @param string|null     $revision
      *
-     * @return Response
-     *
      * @throws AccessDeniedException If access is not granted
      * @throws NotFoundHttpException If the object or revision does not exist or the audit reader is not available
+     *
+     * @return Response
      */
     public function historyViewRevisionAction($id = null, $revision = null)
     {
@@ -790,10 +785,10 @@ class CRUDController implements ContainerAwareInterface
      * @param int|string|null $base_revision
      * @param int|string|null $compare_revision
      *
-     * @return Response
-     *
      * @throws AccessDeniedException If access is not granted
      * @throws NotFoundHttpException If the object or revision does not exist or the audit reader is not available
+     *
+     * @return Response
      */
     public function historyCompareRevisionsAction($id = null, $base_revision = null, $compare_revision = null)
     {
@@ -861,12 +856,10 @@ class CRUDController implements ContainerAwareInterface
     /**
      * Export data to specified format.
      *
-     * @param Request $request
-     *
-     * @return Response
-     *
      * @throws AccessDeniedException If access is not granted
      * @throws \RuntimeException     If the export format is invalid
+     *
+     * @return Response
      */
     public function exportAction(Request $request)
     {
@@ -921,10 +914,10 @@ class CRUDController implements ContainerAwareInterface
      *
      * @param int|string|null $id
      *
-     * @return Response|RedirectResponse
-     *
      * @throws AccessDeniedException If access is not granted
      * @throws NotFoundHttpException If the object does not exist or the ACL is not enabled
+     *
+     * @return Response|RedirectResponse
      */
     public function aclAction($id = null)
     {
@@ -1000,11 +993,7 @@ class CRUDController implements ContainerAwareInterface
      */
     public function getRequest()
     {
-        if ($this->container->has('request_stack')) {
-            return $this->container->get('request_stack')->getCurrentRequest();
-        }
-
-        return $this->container->get('request');
+        return $this->container->get('request_stack')->getCurrentRequest();
     }
 
     /**
@@ -1134,8 +1123,6 @@ class CRUDController implements ContainerAwareInterface
     }
 
     /**
-     * @param \Exception $e
-     *
      * @throws \Exception
      */
     protected function handleModelManagerException(\Exception $e)
@@ -1336,10 +1323,8 @@ class CRUDController implements ContainerAwareInterface
         $request = $this->getRequest();
         $token = $request->request->get('_sonata_csrf_token', false);
 
-        if ($this->container->has('security.csrf.token_manager')) { // SF3.0
+        if ($this->container->has('security.csrf.token_manager')) {
             $valid = $this->container->get('security.csrf.token_manager')->isTokenValid(new CsrfToken($intention, $token));
-        } elseif ($this->container->has('form.csrf_provider')) { // < SF3.0
-            $valid = $this->container->get('form.csrf_provider')->isCsrfTokenValid($intention, $token);
         } else {
             return;
         }
@@ -1374,11 +1359,6 @@ class CRUDController implements ContainerAwareInterface
             return $this->container->get('security.csrf.token_manager')->getToken($intention)->getValue();
         }
 
-        // TODO: Remove it when bumping requirements to SF 2.4+
-        if ($this->container->has('form.csrf_provider')) {
-            return $this->container->get('form.csrf_provider')->generateCsrfToken($intention);
-        }
-
         return false;
     }
 
@@ -1386,8 +1366,7 @@ class CRUDController implements ContainerAwareInterface
      * This method can be overloaded in your custom CRUD controller.
      * It's called from createAction.
      *
-     * @param Request $request
-     * @param mixed   $object
+     * @param mixed $object
      *
      * @return Response|null
      */
@@ -1399,8 +1378,7 @@ class CRUDController implements ContainerAwareInterface
      * This method can be overloaded in your custom CRUD controller.
      * It's called from editAction.
      *
-     * @param Request $request
-     * @param mixed   $object
+     * @param mixed $object
      *
      * @return Response|null
      */
@@ -1412,8 +1390,7 @@ class CRUDController implements ContainerAwareInterface
      * This method can be overloaded in your custom CRUD controller.
      * It's called from deleteAction.
      *
-     * @param Request $request
-     * @param mixed   $object
+     * @param mixed $object
      *
      * @return Response|null
      */
@@ -1425,8 +1402,7 @@ class CRUDController implements ContainerAwareInterface
      * This method can be overloaded in your custom CRUD controller.
      * It's called from showAction.
      *
-     * @param Request $request
-     * @param mixed   $object
+     * @param mixed $object
      *
      * @return Response|null
      */
@@ -1438,8 +1414,6 @@ class CRUDController implements ContainerAwareInterface
      * This method can be overloaded in your custom CRUD controller.
      * It's called from listAction.
      *
-     * @param Request $request
-     *
      * @return Response|null
      */
     protected function preList(Request $request)
@@ -1450,7 +1424,6 @@ class CRUDController implements ContainerAwareInterface
      * Translate a message id.
      *
      * @param string $id
-     * @param array  $parameters
      * @param string $domain
      * @param string $locale
      *
@@ -1466,8 +1439,7 @@ class CRUDController implements ContainerAwareInterface
     /**
      * Sets the admin form theme to form view. Used for compatibility between Symfony versions.
      *
-     * @param FormView $formView
-     * @param string   $theme
+     * @param string $theme
      */
     private function setFormTheme(FormView $formView, $theme)
     {

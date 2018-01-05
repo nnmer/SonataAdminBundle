@@ -11,7 +11,6 @@
 
 namespace Sonata\AdminBundle\Form\Type;
 
-use Doctrine\Common\Collections\Collection;
 use Sonata\AdminBundle\Admin\AdminInterface;
 use Sonata\AdminBundle\Admin\FieldDescriptionInterface;
 use Sonata\AdminBundle\Form\DataTransformer\ArrayToModelTransformer;
@@ -31,9 +30,6 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
  */
 class AdminType extends AbstractType
 {
-    /**
-     * {@inheritdoc}
-     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $admin = clone $this->getAdmin($options);
@@ -58,28 +54,15 @@ class AdminType extends AbstractType
             try {
                 $parentSubject = $admin->getParentFieldDescription()->getAdmin()->getSubject();
                 if (null !== $parentSubject && false !== $parentSubject) {
-                    // for PropertyAccessor < 2.5
-                    // NEXT_MAJOR: remove this code for old PropertyAccessor after dropping support for Symfony 2.3
-                    if (!method_exists($p, 'isReadable')) {
-                        $subjectCollection = $p->getValue(
-                            $parentSubject,
-                            $this->getFieldDescription($options)->getFieldName()
-                        );
-                        if ($subjectCollection instanceof Collection) {
-                            $subject = $subjectCollection->get(trim($options['property_path'], '[]'));
-                        }
+                    // this check is to work around duplication issue in property path
+                    // https://github.com/sonata-project/SonataAdminBundle/issues/4425
+                    if ($this->getFieldDescription($options)->getFieldName() === $options['property_path']) {
+                        $path = $options['property_path'];
                     } else {
-                        // this check is to work around duplication issue in property path
-                        // https://github.com/sonata-project/SonataAdminBundle/issues/4425
-                        if ($this->getFieldDescription($options)->getFieldName() === $options['property_path']) {
-                            $path = $options['property_path'];
-                        } else {
-                            $path = $this->getFieldDescription($options)->getFieldName().$options['property_path'];
-                        }
-
-                        // for PropertyAccessor >= 2.5
-                        $subject = $p->getValue($parentSubject, $path);
+                        $path = $this->getFieldDescription($options)->getFieldName().$options['property_path'];
                     }
+
+                    $subject = $p->getValue($parentSubject, $path);
                     $builder->setData($subject);
                 }
             } catch (NoSuchIndexException $e) {
@@ -94,9 +77,6 @@ class AdminType extends AbstractType
         $builder->addModelTransformer(new ArrayToModelTransformer($admin->getModelManager(), $admin->getClass()));
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function buildView(FormView $view, FormInterface $form, array $options)
     {
         $view->vars['btn_add'] = $options['btn_add'];
@@ -115,9 +95,6 @@ class AdminType extends AbstractType
         $this->configureOptions($resolver);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults([
@@ -149,20 +126,15 @@ class AdminType extends AbstractType
         return $this->getBlockPrefix();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getBlockPrefix()
     {
         return 'sonata_type_admin';
     }
 
     /**
-     * @param array $options
+     * @throws \RuntimeException
      *
      * @return FieldDescriptionInterface
-     *
-     * @throws \RuntimeException
      */
     protected function getFieldDescription(array $options)
     {
@@ -174,8 +146,6 @@ class AdminType extends AbstractType
     }
 
     /**
-     * @param array $options
-     *
      * @return AdminInterface
      */
     protected function getAdmin(array $options)

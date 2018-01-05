@@ -13,16 +13,12 @@ namespace Sonata\AdminBundle\DependencyInjection\Compiler;
 
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * @author Thomas Rabaix <thomas.rabaix@sonata-project.org>
  */
 final class AddFilterTypeCompilerPass implements CompilerPassInterface
 {
-    /**
-     * @param ContainerBuilder $container
-     */
     public function process(ContainerBuilder $container)
     {
         $definition = $container->getDefinition('sonata.admin.builder.filter.factory');
@@ -31,11 +27,8 @@ final class AddFilterTypeCompilerPass implements CompilerPassInterface
         foreach ($container->findTaggedServiceIds('sonata.admin.filter.type') as $id => $attributes) {
             $serviceDefinition = $container->getDefinition($id);
 
-            if (method_exists($definition, 'setShared')) { // Symfony 2.8+
-                $serviceDefinition->setShared(false);
-            } else { // For Symfony <2.8 compatibility
-                $serviceDefinition->setScope(ContainerInterface::SCOPE_PROTOTYPE);
-            }
+            $serviceDefinition->setShared(false);
+            $serviceDefinition->setPublic(true); // Temporary fix until we can support service locators
 
             $types[$serviceDefinition->getClass()] = $id;
 

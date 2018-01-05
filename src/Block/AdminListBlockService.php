@@ -26,9 +26,7 @@ class AdminListBlockService extends AbstractBlockService
     protected $pool;
 
     /**
-     * @param string          $name
-     * @param EngineInterface $templating
-     * @param Pool            $pool
+     * @param string $name
      */
     public function __construct($name, EngineInterface $templating, Pool $pool)
     {
@@ -37,9 +35,6 @@ class AdminListBlockService extends AbstractBlockService
         $this->pool = $pool;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function execute(BlockContextInterface $blockContext, Response $response = null)
     {
         $dashboardGroups = $this->pool->getDashboardGroups();
@@ -61,30 +56,17 @@ class AdminListBlockService extends AbstractBlockService
         ], $response);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName()
     {
         return 'Admin List';
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function configureSettings(OptionsResolver $resolver)
     {
         $resolver->setDefaults([
             'groups' => false,
         ]);
 
-        // Symfony < 2.6 BC
-        if (method_exists($resolver, 'setNormalizer')) {
-            $resolver->setAllowedTypes('groups', ['bool', 'array']);
-        } else {
-            $resolver->setAllowedTypes([
-                'groups' => ['bool', 'array'],
-            ]);
-        }
+        $resolver->setAllowedTypes('groups', ['bool', 'array']);
     }
 }

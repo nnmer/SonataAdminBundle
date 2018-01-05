@@ -28,14 +28,11 @@ class TypeGuesserChain implements TypeGuesserInterface
      */
     protected $guessers = [];
 
-    /**
-     * @param array $guessers
-     */
     public function __construct(array $guessers)
     {
         foreach ($guessers as $guesser) {
             if (!$guesser instanceof TypeGuesserInterface) {
-                throw new UnexpectedTypeException($guesser, 'Sonata\AdminBundle\Guesser\TypeGuesserInterface');
+                throw new UnexpectedTypeException($guesser, TypeGuesserInterface::class);
             }
 
             if ($guesser instanceof self) {
@@ -46,9 +43,6 @@ class TypeGuesserChain implements TypeGuesserInterface
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function guessType($class, $property, ModelManagerInterface $modelManager)
     {
         return $this->guess(function ($guesser) use ($class, $property, $modelManager) {

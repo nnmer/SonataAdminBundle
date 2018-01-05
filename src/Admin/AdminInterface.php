@@ -26,16 +26,12 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Translation\TranslatorInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\Validator\ValidatorInterface as LegacyValidatorInterface;
 
 /**
  * @author Thomas Rabaix <thomas.rabaix@sonata-project.org>
  */
 interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegistryInterface, LifecycleHookProviderInterface, MenuBuilderInterface, ParentAdminInterface, UrlGeneratorInterface
 {
-    /**
-     * @param MenuFactoryInterface $menuFactory
-     */
     public function setMenuFactory(MenuFactoryInterface $menuFactory);
 
     /**
@@ -43,61 +39,31 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      */
     public function getMenuFactory();
 
-    /**
-     * @param FormContractorInterface $formContractor
-     */
     public function setFormContractor(FormContractorInterface $formContractor);
 
-    /**
-     * Set ListBuilder.
-     *
-     * @param ListBuilderInterface $listBuilder
-     */
     public function setListBuilder(ListBuilderInterface $listBuilder);
 
     /**
-     * Get ListBuilder.
-     *
      * @return ListBuilderInterface
      */
     public function getListBuilder();
 
-    /**
-     * Set DatagridBuilder.
-     *
-     * @param DatagridBuilderInterface $datagridBuilder
-     */
     public function setDatagridBuilder(DatagridBuilderInterface $datagridBuilder);
 
     /**
-     * Get DatagridBuilder.
-     *
      * @return DatagridBuilderInterface
      */
     public function getDatagridBuilder();
 
-    /**
-     * Set translator.
-     *
-     * @param TranslatorInterface $translator
-     */
     public function setTranslator(TranslatorInterface $translator);
 
     /**
-     * Get translator.
-     *
      * @return TranslatorInterface
      */
     public function getTranslator();
 
-    /**
-     * @param Request $request
-     */
     public function setRequest(Request $request);
 
-    /**
-     * @param Pool $pool
-     */
     public function setConfigurationPool(Pool $pool);
 
     /**
@@ -110,9 +76,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      */
     public function getClass();
 
-    /**
-     * @param \Sonata\AdminBundle\Admin\FieldDescriptionInterface $fieldDescription
-     */
     public function attachAdminClass(FieldDescriptionInterface $fieldDescription);
 
     /**
@@ -164,9 +127,9 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
     public function getForm();
 
     /**
-     * @return Request
-     *
      * @throws \RuntimeException if no request is set
+     *
+     * @return Request
      */
     public function getRequest();
 
@@ -192,13 +155,10 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      * - one permission that has the same name as the role for the role handler
      * This should be used by experimented users.
      *
-     * @return array [role] => array([permission], [permission])
+     * @return array 'role' => ['permission', 'permission']
      */
     public function getSecurityInformation();
 
-    /**
-     * @param FieldDescriptionInterface $parentFieldDescription
-     */
     public function setParentFieldDescription(FieldDescriptionInterface $parentFieldDescription);
 
     /**
@@ -221,7 +181,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      * NEXT_MAJOR: remove this method
      *
      * @param string      $id
-     * @param array       $parameters
      * @param string|null $domain
      * @param string|null $locale
      *
@@ -264,9 +223,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      */
     // public function isCurrentRoute($name, $adminCode = null);
 
-    /**
-     * @param SecurityHandlerInterface $securityHandler
-     */
     public function setSecurityHandler(SecurityHandlerInterface $securityHandler);
 
     /**
@@ -299,12 +255,12 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
     public function id($entity);
 
     /**
-     * @param ValidatorInterface|LegacyValidatorInterface $validator
+     * @param ValidatorInterface $validator
      */
     public function setValidator($validator);
 
     /**
-     * @return ValidatorInterface|LegacyValidatorInterface
+     * @return ValidatorInterface
      */
     public function getValidator();
 
@@ -313,9 +269,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      */
     public function getShow();
 
-    /**
-     * @param array $formTheme
-     */
     public function setFormTheme(array $formTheme);
 
     /**
@@ -323,9 +276,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      */
     public function getFormTheme();
 
-    /**
-     * @param array $filterTheme
-     */
     public function setFilterTheme(array $filterTheme);
 
     /**
@@ -333,9 +283,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      */
     public function getFilterTheme();
 
-    /**
-     * @param AdminExtensionInterface $extension
-     */
     public function addExtension(AdminExtensionInterface $extension);
 
     /**
@@ -345,9 +292,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      */
     public function getExtensions();
 
-    /**
-     * @param RouteBuilderInterface $routeBuilder
-     */
     public function setRouteBuilder(RouteBuilderInterface $routeBuilder);
 
     /**
@@ -362,9 +306,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      */
     public function toString($object);
 
-    /**
-     * @param LabelTranslatorStrategyInterface $labelTranslatorStrategy
-     */
     public function setLabelTranslatorStrategy(LabelTranslatorStrategyInterface $labelTranslatorStrategy);
 
     /**
@@ -459,10 +400,9 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
     /**
      * Call before the batch action, allow you to alter the query and the idx.
      *
-     * @param string              $actionName
-     * @param ProxyQueryInterface $query
-     * @param array               $idx
-     * @param bool                $allElements
+     * @param string $actionName
+     * @param array  $idx
+     * @param bool   $allElements
      */
     public function preBatchAction($actionName, ProxyQueryInterface $query, array &$idx, $allElements);
 
@@ -483,8 +423,7 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
     /**
      * NEXT_MAJOR: remove this method.
      *
-     * @param ErrorElement $errorElement
-     * @param mixed        $object
+     * @param mixed $object
      *
      * @deprecated this feature cannot be stable, use a custom validator,
      *             the feature will be removed with Symfony 2.2
@@ -510,9 +449,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      */
     public function getParent();
 
-    /**
-     * @param AdminInterface $admin
-     */
     public function setParent(self $admin);
 
     /**
@@ -554,8 +490,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
 
     /**
      * Set the form groups.
-     *
-     * @param array $formGroups
      */
     public function setFormGroups(array $formGroups);
 
@@ -583,8 +517,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
 
     /**
      * Set the show groups.
-     *
-     * @param array $showGroups
      */
     public function setShowGroups(array $showGroups);
 
@@ -592,15 +524,13 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
      * Reorder items in showGroup.
      *
      * @param string $group
-     * @param array  $keys
      */
     public function reorderShowGroup($group, array $keys);
 
     /**
      * add a FieldDescription.
      *
-     * @param string                    $name
-     * @param FieldDescriptionInterface $fieldDescription
+     * @param string $name
      */
     public function addFormFieldDescription($name, FieldDescriptionInterface $fieldDescription);
 
@@ -620,8 +550,6 @@ interface AdminInterface extends AccessRegistryInterface, FieldDescriptionRegist
 
     /**
      * Sets the list of supported sub classes.
-     *
-     * @param array $subClasses the list of sub classes
      */
     public function setSubClasses(array $subClasses);
 

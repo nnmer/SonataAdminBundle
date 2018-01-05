@@ -13,6 +13,7 @@ namespace Sonata\AdminBundle\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Sonata\AdminBundle\DependencyInjection\Configuration;
+use Symfony\Component\Config\Definition\Exception\InvalidTypeException;
 use Symfony\Component\Config\Definition\Processor;
 
 class ConfigurationTest extends TestCase
@@ -36,7 +37,7 @@ class ConfigurationTest extends TestCase
 
     public function testOptionsWithInvalidFormat()
     {
-        $this->expectException('Symfony\Component\Config\Definition\Exception\InvalidTypeException');
+        $this->expectException(InvalidTypeException::class);
 
         $config = $this->process([[
             'options' => [
@@ -189,7 +190,7 @@ class ConfigurationTest extends TestCase
 
     public function testDashboardGroupsWithBadItemsParams()
     {
-        $this->expectException('\InvalidArgumentException', 'Expected either parameters "route" and "label" for array items');
+        $this->expectException(\InvalidArgumentException::class, 'Expected either parameters "route" and "label" for array items');
 
         $config = $this->process([[
             'dashboard' => [
@@ -216,6 +217,22 @@ class ConfigurationTest extends TestCase
 
         $this->assertSame('ROLE_SONATA_ADMIN', $config['security']['role_admin']);
         $this->assertSame('ROLE_SUPER_ADMIN', $config['security']['role_super_admin']);
+    }
+
+    public function testExtraAssetsDefaults()
+    {
+        $config = $this->process([[]]);
+
+        $this->assertSame([], $config['assets']['extra_stylesheets']);
+        $this->assertSame([], $config['assets']['extra_javascripts']);
+    }
+
+    public function testRemoveAssetsDefaults()
+    {
+        $config = $this->process([[]]);
+
+        $this->assertSame([], $config['assets']['remove_stylesheets']);
+        $this->assertSame([], $config['assets']['remove_javascripts']);
     }
 
     /**

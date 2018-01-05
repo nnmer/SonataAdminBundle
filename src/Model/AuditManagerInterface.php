@@ -20,7 +20,6 @@ interface AuditManagerInterface
      * Set AuditReaderInterface service id for array of $classes.
      *
      * @param string $serviceId
-     * @param array  $classes
      */
     public function setReader($serviceId, array $classes);
 
@@ -38,9 +37,9 @@ interface AuditManagerInterface
      *
      * @param string $class
      *
-     * @return AuditReaderInterface
-     *
      * @throws \RuntimeException
+     *
+     * @return AuditReaderInterface
      */
     public function getReader($class);
 }

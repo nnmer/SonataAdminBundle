@@ -41,11 +41,9 @@ class RoutesCache
     }
 
     /**
-     * @param AdminInterface $admin
+     * @throws \RuntimeException
      *
      * @return mixed
-     *
-     * @throws \RuntimeException
      */
     public function load(AdminInterface $admin)
     {

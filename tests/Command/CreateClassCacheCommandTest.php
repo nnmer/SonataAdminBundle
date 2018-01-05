@@ -15,6 +15,8 @@ use PHPUnit\Framework\TestCase;
 use Sonata\AdminBundle\Command\CreateClassCacheCommand;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
  * @author Andrej Hudec <pulzarraider@gmail.com>
@@ -40,7 +42,7 @@ class CreateClassCacheCommandTest extends TestCase
 
         if (mkdir($tempFile)) {
             $this->tempDirectory = $tempFile;
-            file_put_contents($this->tempDirectory.'/classes.map', '<?php return array(\'Sonata\\AdminBundle\\Tests\\Fixtures\\Controller\\FooAdminController\', \'Sonata\\AdminBundle\\Tests\\Fixtures\\Controller\\BarAdminController\',);');
+            file_put_contents($this->tempDirectory.'/classes.map', '<?php return [\'Sonata\\AdminBundle\\Tests\\Fixtures\\Controller\\FooAdminController\', \'Sonata\\AdminBundle\\Tests\\Fixtures\\Controller\\BarAdminController\',];');
         } else {
             $this->markTestSkipped(sprintf('Temp directory "%s" creation error.', $tempFile));
         }
@@ -48,8 +50,8 @@ class CreateClassCacheCommandTest extends TestCase
         $this->application = new Application();
         $command = new CreateClassCacheCommand();
 
-        $container = $this->createMock('Symfony\Component\DependencyInjection\ContainerInterface');
-        $kernel = $this->createMock('Symfony\Component\HttpKernel\KernelInterface');
+        $container = $this->createMock(ContainerInterface::class);
+        $kernel = $this->createMock(KernelInterface::class);
 
         $kernel->expects($this->any())
             ->method('getCacheDir')
@@ -65,8 +67,6 @@ class CreateClassCacheCommandTest extends TestCase
                     if ('kernel' == $id) {
                         return $kernel;
                     }
-
-                    return;
                 }));
 
         $command->setContainer($container);
