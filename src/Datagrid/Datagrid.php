@@ -16,6 +16,7 @@ use Sonata\AdminBundle\Admin\FieldDescriptionInterface;
 use Sonata\AdminBundle\Filter\FilterInterface;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Exception\UnexpectedTypeException;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormInterface;
 
@@ -71,15 +72,13 @@ class Datagrid implements DatagridInterface
      */
     protected $results;
 
-    /**
-     * @param ProxyQueryInterface        $query
-     * @param FieldDescriptionCollection $columns
-     * @param PagerInterface             $pager
-     * @param FormBuilderInterface       $formBuilder
-     * @param array                      $values
-     */
-    public function __construct(ProxyQueryInterface $query, FieldDescriptionCollection $columns, PagerInterface $pager, FormBuilderInterface $formBuilder, array $values = [])
-    {
+    public function __construct(
+        ProxyQueryInterface $query,
+        FieldDescriptionCollection $columns,
+        PagerInterface $pager,
+        FormBuilderInterface $formBuilder,
+        array $values = []
+    ) {
         $this->pager = $pager;
         $this->query = $query;
         $this->values = $values;
@@ -87,17 +86,11 @@ class Datagrid implements DatagridInterface
         $this->formBuilder = $formBuilder;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getPager()
     {
         return $this->pager;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getResults()
     {
         $this->buildPager();
@@ -109,9 +102,6 @@ class Datagrid implements DatagridInterface
         return $this->results;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function buildPager()
     {
         if ($this->bound) {
@@ -124,10 +114,7 @@ class Datagrid implements DatagridInterface
             $this->formBuilder->add($filter->getFormName(), $type, $options);
         }
 
-        // NEXT_MAJOR: Remove BC trick when bumping Symfony requirement to 2.8+
-        $hiddenType = method_exists('Symfony\Component\Form\AbstractType', 'getBlockPrefix')
-            ? 'Symfony\Component\Form\Extension\Core\Type\HiddenType'
-            : 'hidden';
+        $hiddenType = HiddenType::class;
 
         $this->formBuilder->add('_sort_by', $hiddenType);
         $this->formBuilder->get('_sort_by')->addViewTransformer(new CallbackTransformer(
@@ -155,7 +142,7 @@ class Datagrid implements DatagridInterface
 
         if (isset($this->values['_sort_by'])) {
             if (!$this->values['_sort_by'] instanceof FieldDescriptionInterface) {
-                throw new UnexpectedTypeException($this->values['_sort_by'], 'FieldDescriptionInterface');
+                throw new UnexpectedTypeException($this->values['_sort_by'], FieldDescriptionInterface::class);
             }
 
             if ($this->values['_sort_by']->isSortable()) {
@@ -166,11 +153,8 @@ class Datagrid implements DatagridInterface
 
         $maxPerPage = 25;
         if (isset($this->values['_per_page'])) {
-            // check for `is_array` can be safely removed if php 5.3 support will be dropped
-            if (is_array($this->values['_per_page'])) {
-                if (isset($this->values['_per_page']['value'])) {
-                    $maxPerPage = $this->values['_per_page']['value'];
-                }
+            if (isset($this->values['_per_page']['value'])) {
+                $maxPerPage = $this->values['_per_page']['value'];
             } else {
                 $maxPerPage = $this->values['_per_page'];
             }
@@ -179,11 +163,8 @@ class Datagrid implements DatagridInterface
 
         $page = 1;
         if (isset($this->values['_page'])) {
-            // check for `is_array` can be safely removed if php 5.3 support will be dropped
-            if (is_array($this->values['_page'])) {
-                if (isset($this->values['_page']['value'])) {
-                    $page = $this->values['_page']['value'];
-                }
+            if (isset($this->values['_page']['value'])) {
+                $page = $this->values['_page']['value'];
             } else {
                 $page = $this->values['_page'];
             }
@@ -197,65 +178,41 @@ class Datagrid implements DatagridInterface
         $this->bound = true;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function addFilter(FilterInterface $filter)
     {
         $this->filters[$filter->getName()] = $filter;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function hasFilter($name)
     {
         return isset($this->filters[$name]);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function removeFilter($name)
     {
         unset($this->filters[$name]);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getFilter($name)
     {
         return $this->hasFilter($name) ? $this->filters[$name] : null;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getFilters()
     {
         return $this->filters;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function reorderFilters(array $keys)
     {
         $this->filters = array_merge(array_flip($keys), $this->filters);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getValues()
     {
         return $this->values;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function setValue($name, $operator, $value)
     {
         $this->values[$name] = [
@@ -264,9 +221,6 @@ class Datagrid implements DatagridInterface
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function hasActiveFilters()
     {
         foreach ($this->filters as $name => $filter) {
@@ -278,9 +232,6 @@ class Datagrid implements DatagridInterface
         return false;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function hasDisplayableFilters()
     {
         foreach ($this->filters as $name => $filter) {
@@ -293,25 +244,16 @@ class Datagrid implements DatagridInterface
         return false;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getColumns()
     {
         return $this->columns;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getQuery()
     {
         return $this->query;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getForm()
     {
         $this->buildPager();

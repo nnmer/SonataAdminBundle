@@ -42,8 +42,7 @@ class AdminObjectAclManipulator
     protected $maskBuilderClass;
 
     /**
-     * @param FormFactoryInterface $formFactory
-     * @param string               $maskBuilderClass
+     * @param string $maskBuilderClass
      */
     public function __construct(FormFactoryInterface $formFactory, $maskBuilderClass)
     {
@@ -66,8 +65,6 @@ class AdminObjectAclManipulator
      *
      * NEXT_MAJOR: remove this method.
      *
-     * @param AdminObjectAclData $data
-     *
      * @return Form
      *
      * @deprecated Deprecated since version 3.0. Use createAclUsersForm() instead
@@ -86,8 +83,6 @@ class AdminObjectAclManipulator
     /**
      * Gets the ACL users form.
      *
-     * @param AdminObjectAclData $data
-     *
      * @return Form
      */
     public function createAclUsersForm(AdminObjectAclData $data)
@@ -103,8 +98,6 @@ class AdminObjectAclManipulator
     /**
      * Gets the ACL roles form.
      *
-     * @param AdminObjectAclData $data
-     *
      * @return Form
      */
     public function createAclRolesForm(AdminObjectAclData $data)
@@ -119,8 +112,6 @@ class AdminObjectAclManipulator
 
     /**
      * Updates ACL users.
-     *
-     * @param AdminObjectAclData $data
      */
     public function updateAclUsers(AdminObjectAclData $data)
     {
@@ -132,8 +123,6 @@ class AdminObjectAclManipulator
 
     /**
      * Updates ACL roles.
-     *
-     * @param AdminObjectAclData $data
      */
     public function updateAclRoles(AdminObjectAclData $data)
     {
@@ -147,8 +136,6 @@ class AdminObjectAclManipulator
      * Updates ACl.
      *
      * NEXT_MAJOR: remove this method.
-     *
-     * @param AdminObjectAclData $data
      *
      * @deprecated Deprecated since version 3.0. Use updateAclUsers() instead
      */
@@ -165,10 +152,6 @@ class AdminObjectAclManipulator
 
     /**
      * Builds ACL.
-     *
-     * @param AdminObjectAclData $data
-     * @param Form               $form
-     * @param \Traversable       $aclValues
      */
     protected function buildAcl(AdminObjectAclData $data, Form $form, \Traversable $aclValues)
     {
@@ -237,10 +220,6 @@ class AdminObjectAclManipulator
     /**
      * Builds the form.
      *
-     * @param AdminObjectAclData   $data
-     * @param FormBuilderInterface $formBuilder
-     * @param \Traversable         $aclValues
-     *
      * @return Form
      */
     protected function buildForm(AdminObjectAclData $data, FormBuilderInterface $formBuilder, \Traversable $aclValues)
@@ -285,12 +264,11 @@ class AdminObjectAclManipulator
                 ];
             }
 
-            // NEXT_MAJOR: remove when dropping Symfony <2.8 support
-            $type = method_exists('Symfony\Component\Form\AbstractType', 'getBlockPrefix') ?
-                'Sonata\AdminBundle\Form\Type\AclMatrixType' :
-                new AclMatrixType();
-
-            $formBuilder->add($key, $type, ['permissions' => $permissions, 'acl_value' => $aclValue]);
+            $formBuilder->add(
+                $key,
+                AclMatrixType::class,
+                ['permissions' => $permissions, 'acl_value' => $aclValue]
+            );
         }
 
         return $formBuilder->getForm();

@@ -100,9 +100,6 @@ class Admin implements MetadataProcessorInterface
      */
     public $onTop = false;
 
-    /**
-     * @param ClassMetadata $metadata
-     */
     public function processMetadata(ClassMetadata $metadata)
     {
         $this->generateFallback($this->class);
@@ -121,7 +118,7 @@ class Admin implements MetadataProcessorInterface
         ];
 
         $tag = array_filter($tag, function ($v) {
-            return !is_null($v);
+            return null !== $v;
         });
 
         if (!empty($this->id)) {

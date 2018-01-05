@@ -25,8 +25,6 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 final class Configuration implements ConfigurationInterface
 {
     /**
-     * Generates the configuration tree.
-     *
      * @return TreeBuilder
      */
     public function getConfigTreeBuilder()
@@ -362,6 +360,16 @@ final class Configuration implements ConfigurationInterface
                             ])
                             ->prototype('scalar')->end()
                         ->end()
+                        ->arrayNode('extra_stylesheets')
+                            ->info('stylesheets to add to the page')
+                            ->defaultValue([])
+                            ->prototype('scalar')->end()
+                        ->end()
+                        ->arrayNode('remove_stylesheets')
+                            ->info('stylesheets to remove from the page')
+                            ->defaultValue([])
+                            ->prototype('scalar')->end()
+                        ->end()
                         ->arrayNode('javascripts')
                             ->defaultValue([
                                 'bundles/sonatacore/vendor/jquery/dist/jquery.min.js',
@@ -394,7 +402,18 @@ final class Configuration implements ConfigurationInterface
 
                                 'bundles/sonataadmin/Admin.js',
                                 'bundles/sonataadmin/treeview.js',
+                                'bundles/sonataadmin/sidebar.js',
                             ])
+                            ->prototype('scalar')->end()
+                        ->end()
+                        ->arrayNode('extra_javascripts')
+                            ->info('javascripts to add to the page')
+                            ->defaultValue([])
+                            ->prototype('scalar')->end()
+                        ->end()
+                        ->arrayNode('remove_javascripts')
+                            ->info('javascripts to remove from the page')
+                            ->defaultValue([])
                             ->prototype('scalar')->end()
                         ->end()
                     ->end()

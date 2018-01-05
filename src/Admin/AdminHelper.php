@@ -11,16 +11,16 @@
 
 namespace Sonata\AdminBundle\Admin;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Inflector\Inflector;
 use Doctrine\Common\Util\ClassUtils;
+use Doctrine\ODM\MongoDB\PersistentCollection;
+use Doctrine\ORM\PersistentCollection as DoctrinePersistentCollection;
 use Sonata\AdminBundle\Exception\NoValueException;
 use Sonata\AdminBundle\Util\FormBuilderIterator;
 use Sonata\AdminBundle\Util\FormViewIterator;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormView;
-use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
-use Symfony\Component\PropertyAccess\Exception\UnexpectedTypeException;
-use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 /**
  * @author Thomas Rabaix <thomas.rabaix@sonata-project.org>
@@ -32,19 +32,15 @@ class AdminHelper
      */
     protected $pool;
 
-    /**
-     * @param Pool $pool
-     */
     public function __construct(Pool $pool)
     {
         $this->pool = $pool;
     }
 
     /**
-     * @throws \RuntimeException
+     * @param string $elementId
      *
-     * @param FormBuilderInterface $formBuilder
-     * @param string               $elementId
+     * @throws \RuntimeException
      *
      * @return FormBuilderInterface|null
      */
@@ -55,13 +51,10 @@ class AdminHelper
                 return $formBuilder;
             }
         }
-
-        return;
     }
 
     /**
-     * @param FormView $formView
-     * @param string   $elementId
+     * @param string $elementId
      *
      * @return null|FormView
      */
@@ -72,8 +65,6 @@ class AdminHelper
                 return $formView;
             }
         }
-
-        return;
     }
 
     /**
@@ -96,15 +87,14 @@ class AdminHelper
      *   For now the append form element action used to add a new row works
      *   only for direct FieldDescription (not nested one).
      *
-     * @throws \RuntimeException
      *
-     * @param AdminInterface $admin
-     * @param object         $subject
-     * @param string         $elementId
+     * @param object $subject
+     * @param string $elementId
+     *
+     * @throws \RuntimeException
+     * @throws \Exception
      *
      * @return array
-     *
-     * @throws \Exception
      */
     public function appendFormFieldElement(AdminInterface $admin, $subject, $elementId)
     {
@@ -128,10 +118,10 @@ class AdminHelper
 
             $collection = $propertyAccessor->getValue($entity, $path);
 
-            if ($collection instanceof \Doctrine\ORM\PersistentCollection || $collection instanceof \Doctrine\ODM\MongoDB\PersistentCollection) {
+            if ($collection instanceof DoctrinePersistentCollection || $collection instanceof PersistentCollection) {
                 //since doctrine 2.4
                 $entityClassName = $collection->getTypeClass()->getName();
-            } elseif ($collection instanceof \Doctrine\Common\Collections\Collection) {
+            } elseif ($collection instanceof Collection) {
                 $entityClassName = $this->getEntityClassName($admin, explode('.', preg_replace('#\[\d*?\]#', '', $path)));
             } else {
                 throw new \Exception('unknown collection class');
@@ -191,8 +181,7 @@ class AdminHelper
     /**
      * Add a new instance to the related FieldDescriptionInterface value.
      *
-     * @param object                    $object
-     * @param FieldDescriptionInterface $fieldDescription
+     * @param object $object
      *
      * @throws \RuntimeException
      */
@@ -227,9 +216,9 @@ class AdminHelper
      *                          (uniqueIdentifier_model_sub_model or uniqueIdentifier_model_1_sub_model etc.)
      * @param mixed  $entity
      *
-     * @return string
-     *
      * @throws \Exception
+     *
+     * @return string
      */
     public function getElementAccessPath($elementId, $entity)
     {
@@ -246,7 +235,7 @@ class AdminHelper
             $currentPath .= empty($currentPath) ? $part : '_'.$part;
             $separator = empty($totalPath) ? '' : '.';
 
-            if ($this->pathExists($propertyAccessor, $entity, $totalPath.$separator.$currentPath)) {
+            if ($propertyAccessor->isReadable($entity, $totalPath.$separator.$currentPath)) {
                 $totalPath .= $separator.$currentPath;
                 $currentPath = '';
             }
@@ -264,8 +253,7 @@ class AdminHelper
     /**
      * Recursively find the class name of the admin responsible for the element at the end of an association chain.
      *
-     * @param AdminInterface $admin
-     * @param array          $elements
+     * @param array $elements
      *
      * @return string
      */
@@ -278,34 +266,5 @@ class AdminHelper
         }
 
         return $this->getEntityClassName($associationAdmin, $elements);
-    }
-
-    /**
-     * Check if given path exists in $entity.
-     *
-     * @param PropertyAccessorInterface $propertyAccessor
-     * @param mixed                     $entity
-     * @param string                    $path
-     *
-     * @return bool
-     *
-     * @throws \RuntimeException
-     */
-    private function pathExists(PropertyAccessorInterface $propertyAccessor, $entity, $path)
-    {
-        // Symfony <= 2.3 did not have isReadable method for PropertyAccessor
-        if (method_exists($propertyAccessor, 'isReadable')) {
-            return $propertyAccessor->isReadable($entity, $path);
-        }
-
-        try {
-            $propertyAccessor->getValue($entity, $path);
-
-            return true;
-        } catch (NoSuchPropertyException $e) {
-            return false;
-        } catch (UnexpectedTypeException $e) {
-            return false;
-        }
     }
 }

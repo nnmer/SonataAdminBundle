@@ -11,9 +11,7 @@
 
 namespace Sonata\AdminBundle\Form\Type;
 
-use Sonata\AdminBundle\Form\ChoiceList\ModelChoiceList;
 use Sonata\AdminBundle\Form\ChoiceList\ModelChoiceLoader;
-use Sonata\AdminBundle\Form\DataTransformer\LegacyModelsToArrayTransformer;
 use Sonata\AdminBundle\Form\DataTransformer\ModelsToArrayTransformer;
 use Sonata\AdminBundle\Form\DataTransformer\ModelToIdTransformer;
 use Sonata\AdminBundle\Form\EventListener\MergeCollectionListener;
@@ -21,6 +19,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormTypeInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -44,19 +43,13 @@ class ModelType extends AbstractType
         $this->propertyAccessor = $propertyAccessor;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         if ($options['multiple']) {
-            if (array_key_exists('choice_loader', $options) && null !== $options['choice_loader']) { // SF2.7+
-                $builder->addViewTransformer(new ModelsToArrayTransformer(
-                    $options['model_manager'],
-                    $options['class']), true);
-            } else {
-                $builder->addViewTransformer(new LegacyModelsToArrayTransformer($options['choice_list']), true);
-            }
+            $builder->addViewTransformer(
+                new ModelsToArrayTransformer($options['model_manager'], $options['class']),
+                true
+            );
 
             $builder
                 ->addEventSubscriber(new MergeCollectionListener($options['model_manager']))
@@ -68,9 +61,6 @@ class ModelType extends AbstractType
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function buildView(FormView $view, FormInterface $form, array $options)
     {
         $view->vars['btn_add'] = $options['btn_add'];
@@ -89,47 +79,27 @@ class ModelType extends AbstractType
         $this->configureOptions($resolver);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function configureOptions(OptionsResolver $resolver)
     {
         $options = [];
         $propertyAccessor = $this->propertyAccessor;
-        if (interface_exists('Symfony\Component\Form\ChoiceList\Loader\ChoiceLoaderInterface')) { // SF2.7+
-            $options['choice_loader'] = function (Options $options, $previousValue) use ($propertyAccessor) {
-                if ($previousValue && count($choices = $previousValue->getChoices())) {
-                    return $choices;
-                }
-
-                return new ModelChoiceLoader(
-                    $options['model_manager'],
-                    $options['class'],
-                    $options['property'],
-                    $options['query'],
-                    $options['choices'],
-                    $propertyAccessor
-                );
-            };
-            // NEXT_MAJOR: Remove this when dropping support for SF 2.8
-            if (method_exists('Symfony\Component\Form\FormTypeInterface', 'setDefaultOptions')) {
-                $options['choices_as_values'] = true;
+        $options['choice_loader'] = function (Options $options, $previousValue) use ($propertyAccessor) {
+            if ($previousValue && count($choices = $previousValue->getChoices())) {
+                return $choices;
             }
-        } else {
-            $options['choice_list'] = function (Options $options, $previousValue) use ($propertyAccessor) {
-                if ($previousValue && count($choices = $previousValue->getChoices())) {
-                    return $choices;
-                }
 
-                return new ModelChoiceList(
-                    $options['model_manager'],
-                    $options['class'],
-                    $options['property'],
-                    $options['query'],
-                    $options['choices'],
-                    $propertyAccessor
-                );
-            };
+            return new ModelChoiceLoader(
+                $options['model_manager'],
+                $options['class'],
+                $options['property'],
+                $options['query'],
+                $options['choices'],
+                $propertyAccessor
+            );
+        };
+        // NEXT_MAJOR: Remove this when dropping support for SF 2.8
+        if (method_exists(FormTypeInterface::class, 'setDefaultOptions')) {
+            $options['choices_as_values'] = true;
         }
 
         $resolver->setDefaults(array_merge($options, [
@@ -169,9 +139,6 @@ class ModelType extends AbstractType
         ]));
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getParent()
     {
         return ChoiceType::class;
@@ -187,9 +154,6 @@ class ModelType extends AbstractType
         return $this->getBlockPrefix();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getBlockPrefix()
     {
         return 'sonata_type_model';

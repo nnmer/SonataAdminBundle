@@ -13,6 +13,7 @@ namespace Sonata\AdminBundle\Tests\Filter;
 
 use PHPUnit\Framework\TestCase;
 use Sonata\AdminBundle\Tests\Fixtures\Filter\FooFilter;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 
 class FilterTest extends TestCase
 {
@@ -20,9 +21,7 @@ class FilterTest extends TestCase
     {
         $filter = new FooFilter();
 
-        $this->assertSame(method_exists('Symfony\Component\Form\AbstractType', 'getBlockPrefix')
-            ? 'Symfony\Component\Form\Extension\Core\Type\TextType'
-            : 'text', $filter->getFieldType());
+        $this->assertSame(TextType::class, $filter->getFieldType());
         $this->assertSame(['required' => false], $filter->getFieldOptions());
         $this->assertNull($filter->getLabel());
 
@@ -101,11 +100,10 @@ class FilterTest extends TestCase
         $this->assertSame('foo', $filter->getLabel());
     }
 
-    /**
-     * @expectedException \RuntimeException
-     */
     public function testExceptionOnNonDefinedFieldName()
     {
+        $this->expectException(\RuntimeException::class);
+
         $filter = new FooFilter();
 
         $filter->getFieldName();
@@ -139,7 +137,7 @@ class FilterTest extends TestCase
     public function testGetTranslationDomain()
     {
         $filter = new FooFilter();
-        $this->assertSame(null, $filter->getTranslationDomain());
+        $this->assertNull($filter->getTranslationDomain());
         $filter->setOption('translation_domain', 'baz');
         $this->assertSame('baz', $filter->getTranslationDomain());
     }

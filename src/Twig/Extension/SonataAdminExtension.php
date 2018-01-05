@@ -18,11 +18,16 @@ use Sonata\AdminBundle\Admin\FieldDescriptionInterface;
 use Sonata\AdminBundle\Admin\Pool;
 use Sonata\AdminBundle\Exception\NoValueException;
 use Symfony\Component\Translation\TranslatorInterface;
+use Twig\Environment;
+use Twig\Error\LoaderError;
+use Twig\Extension\AbstractExtension;
+use Twig\Template;
+use Twig\TwigFilter;
 
 /**
  * @author Thomas Rabaix <thomas.rabaix@sonata-project.org>
  */
-class SonataAdminExtension extends \Twig_Extension
+class SonataAdminExtension extends AbstractExtension
 {
     /**
      * @var Pool
@@ -44,11 +49,6 @@ class SonataAdminExtension extends \Twig_Extension
      */
     private $xEditableTypeMapping = [];
 
-    /**
-     * @param Pool                $pool
-     * @param LoggerInterface     $logger
-     * @param TranslatorInterface $translator
-     */
     public function __construct(Pool $pool, LoggerInterface $logger = null, TranslatorInterface $translator = null)
     {
         // NEXT_MAJOR: make the translator parameter required
@@ -63,13 +63,10 @@ class SonataAdminExtension extends \Twig_Extension
         $this->translator = $translator;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getFilters()
     {
         return [
-            new \Twig_SimpleFilter(
+            new TwigFilter(
                 'render_list_element',
                 [$this, 'renderListElement'],
                 [
@@ -77,7 +74,7 @@ class SonataAdminExtension extends \Twig_Extension
                     'needs_environment' => true,
                 ]
             ),
-            new \Twig_SimpleFilter(
+            new TwigFilter(
                 'render_view_element',
                 [$this, 'renderViewElement'],
                 [
@@ -85,7 +82,7 @@ class SonataAdminExtension extends \Twig_Extension
                     'needs_environment' => true,
                 ]
             ),
-            new \Twig_SimpleFilter(
+            new TwigFilter(
                 'render_view_element_compare',
                 [$this, 'renderViewElementCompare'],
                 [
@@ -93,28 +90,25 @@ class SonataAdminExtension extends \Twig_Extension
                     'needs_environment' => true,
                 ]
             ),
-            new \Twig_SimpleFilter(
+            new TwigFilter(
                 'render_relation_element',
                 [$this, 'renderRelationElement']
             ),
-            new \Twig_SimpleFilter(
+            new TwigFilter(
                 'sonata_urlsafeid',
                 [$this, 'getUrlsafeIdentifier']
             ),
-            new \Twig_SimpleFilter(
+            new TwigFilter(
                 'sonata_xeditable_type',
                 [$this, 'getXEditableType']
             ),
-            new \Twig_SimpleFilter(
+            new TwigFilter(
                 'sonata_xeditable_choices',
                 [$this, 'getXEditableChoices']
             ),
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName()
     {
         return 'sonata_admin';
@@ -123,14 +117,13 @@ class SonataAdminExtension extends \Twig_Extension
     /**
      * render a list element from the FieldDescription.
      *
-     * @param mixed                     $object
-     * @param FieldDescriptionInterface $fieldDescription
-     * @param array                     $params
+     * @param mixed $object
+     * @param array $params
      *
      * @return string
      */
     public function renderListElement(
-        \Twig_Environment $environment,
+        Environment $environment,
         $object,
         FieldDescriptionInterface $fieldDescription,
         $params = []
@@ -150,17 +143,13 @@ class SonataAdminExtension extends \Twig_Extension
     }
 
     /**
-     * @param FieldDescriptionInterface $fieldDescription
-     * @param \Twig_Template            $template
-     * @param array                     $parameters
-     *
      * @return string
      */
     public function output(
         FieldDescriptionInterface $fieldDescription,
-        \Twig_Template $template,
+        Template $template,
         array $parameters,
-        \Twig_Environment $environment
+        Environment $environment
     ) {
         $content = $template->render($parameters);
 
@@ -193,9 +182,7 @@ EOT;
      * return the value related to FieldDescription, if the associated object does no
      * exists => a temporary one is created.
      *
-     * @param object                    $object
-     * @param FieldDescriptionInterface $fieldDescription
-     * @param array                     $params
+     * @param object $object
      *
      * @throws \RuntimeException
      *
@@ -226,13 +213,12 @@ EOT;
     /**
      * render a view element.
      *
-     * @param FieldDescriptionInterface $fieldDescription
-     * @param mixed                     $object
+     * @param mixed $object
      *
      * @return string
      */
     public function renderViewElement(
-        \Twig_Environment $environment,
+        Environment $environment,
         FieldDescriptionInterface $fieldDescription,
         $object
     ) {
@@ -259,14 +245,13 @@ EOT;
     /**
      * render a compared view element.
      *
-     * @param FieldDescriptionInterface $fieldDescription
-     * @param mixed                     $baseObject
-     * @param mixed                     $compareObject
+     * @param mixed $baseObject
+     * @param mixed $compareObject
      *
      * @return string
      */
     public function renderViewElementCompare(
-        \Twig_Environment $environment,
+        Environment $environment,
         FieldDescriptionInterface $fieldDescription,
         $baseObject,
         $compareObject
@@ -314,10 +299,9 @@ EOT;
     }
 
     /**
-     * @throws \RuntimeException
+     * @param mixed $element
      *
-     * @param mixed                     $element
-     * @param FieldDescriptionInterface $fieldDescription
+     * @throws \RuntimeException
      *
      * @return mixed
      */
@@ -366,14 +350,13 @@ EOT;
     /**
      * Get the identifiers as a string that is safe to use in a url.
      *
-     * @param object         $model
-     * @param AdminInterface $admin
+     * @param object $model
      *
      * @return string string representation of the id that is safe to use in a url
      */
     public function getUrlsafeIdentifier($model, AdminInterface $admin = null)
     {
-        if (is_null($admin)) {
+        if (null === $admin) {
             $admin = $this->pool->getAdminByClass(ClassUtils::getClass($model));
         }
 
@@ -389,8 +372,6 @@ EOT;
     }
 
     /**
-     * @param $type
-     *
      * @return string|bool
      */
     public function getXEditableType($type)
@@ -404,8 +385,6 @@ EOT;
      *     ['Status1' => 'Alias1', 'Status2' => 'Alias2']
      * The method will return:
      *     [['value' => 'Status1', 'text' => 'Alias1'], ['value' => 'Status2', 'text' => 'Alias2']].
-     *
-     * @param FieldDescriptionInterface $fieldDescription
      *
      * @return array
      */
@@ -445,21 +424,20 @@ EOT;
     /**
      * Get template.
      *
-     * @param FieldDescriptionInterface $fieldDescription
-     * @param string                    $defaultTemplate
+     * @param string $defaultTemplate
      *
      * @return \Twig_TemplateInterface
      */
     protected function getTemplate(
         FieldDescriptionInterface $fieldDescription,
         $defaultTemplate,
-        \Twig_Environment $environment
+        Environment $environment
     ) {
         $templateName = $fieldDescription->getTemplate() ?: $defaultTemplate;
 
         try {
             $template = $environment->loadTemplate($templateName);
-        } catch (\Twig_Error_Loader $e) {
+        } catch (LoaderError $e) {
             @trigger_error(
                 'Relying on default template loading on field template loading exception '.
                 'is deprecated since 3.1 and will be removed in 4.0. '.

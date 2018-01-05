@@ -16,7 +16,6 @@ use Sonata\AdminBundle\Datagrid\Pager;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\DefinitionDecorator;
 use Symfony\Component\DependencyInjection\Reference;
@@ -29,9 +28,6 @@ use Symfony\Component\DependencyInjection\Reference;
  */
 class AddDependencyCallsCompilerPass implements CompilerPassInterface
 {
-    /**
-     * {@inheritdoc}
-     */
     public function process(ContainerBuilder $container)
     {
         // check if translator service exist
@@ -53,6 +49,9 @@ class AddDependencyCallsCompilerPass implements CompilerPassInterface
             foreach ($tags as $attributes) {
                 $definition = $container->getDefinition($id);
                 $parentDefinition = null;
+
+                // Temporary fix until we can support service locators
+                $definition->setPublic(true);
 
                 // NEXT_MAJOR: Remove check for DefinitionDecorator instance when dropping Symfony <3.3 support
                 if ($definition instanceof ChildDefinition ||
@@ -210,9 +209,6 @@ class AddDependencyCallsCompilerPass implements CompilerPassInterface
 
     /**
      * This method read the attribute keys and configure admin class to use the related dependency.
-     *
-     * @param Definition $definition
-     * @param array      $attributes
      */
     public function applyConfigurationFromAttribute(Definition $definition, array $attributes)
     {
@@ -245,9 +241,7 @@ class AddDependencyCallsCompilerPass implements CompilerPassInterface
     /**
      * Apply the default values required by the AdminInterface to the Admin service definition.
      *
-     * @param ContainerBuilder $container
-     * @param string           $serviceId
-     * @param array            $attributes
+     * @param string $serviceId
      *
      * @return Definition
      */
@@ -256,11 +250,7 @@ class AddDependencyCallsCompilerPass implements CompilerPassInterface
         $definition = $container->getDefinition($serviceId);
         $settings = $container->getParameter('sonata.admin.configuration.admin_services');
 
-        if (method_exists($definition, 'setShared')) { // Symfony 2.8+
-            $definition->setShared(false);
-        } else { // For Symfony <2.8 compatibility
-            $definition->setScope(ContainerInterface::SCOPE_PROTOTYPE);
-        }
+        $definition->setShared(false);
 
         $manager_type = $attributes['manager_type'];
 
@@ -347,11 +337,6 @@ class AddDependencyCallsCompilerPass implements CompilerPassInterface
         return $definition;
     }
 
-    /**
-     * @param ContainerBuilder $container
-     * @param Definition       $definition
-     * @param array            $overwrittenTemplates
-     */
     public function fixTemplates(ContainerBuilder $container, Definition $definition, array $overwrittenTemplates = [])
     {
         $definedTemplates = $container->getParameter('sonata.admin.configuration.templates');
@@ -399,13 +384,12 @@ class AddDependencyCallsCompilerPass implements CompilerPassInterface
 
     /**
      * Replace the empty arguments required by the Admin service definition.
-     *
-     * @param array           $defaultArguments
-     * @param Definition      $definition
-     * @param Definition|null $parentDefinition
      */
-    private function replaceDefaultArguments(array $defaultArguments, Definition $definition, Definition $parentDefinition = null)
-    {
+    private function replaceDefaultArguments(
+        array $defaultArguments,
+        Definition $definition,
+        Definition $parentDefinition = null
+    ) {
         $arguments = $definition->getArguments();
         $parentArguments = $parentDefinition ? $parentDefinition->getArguments() : [];
 

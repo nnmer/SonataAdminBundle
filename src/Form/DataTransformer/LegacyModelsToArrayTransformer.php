@@ -30,24 +30,16 @@ class LegacyModelsToArrayTransformer implements DataTransformerInterface
      */
     protected $choiceList;
 
-    /**
-     * @param ModelChoiceList $choiceList
-     */
     public function __construct(ModelChoiceList $choiceList)
     {
-        if (interface_exists('Symfony\Component\Form\ChoiceList\Loader\ChoiceLoaderInterface')) {
-            @trigger_error(
-                'The '.__CLASS__.' class is deprecated since 3.11, to be removed in 4.0. '.
-                'Use Sonata\AdminBundle\Form\DataTransformer\ModelsToArrayTransformer instead.',
-                E_USER_DEPRECATED
-            );
-        }
+        @trigger_error(
+            'The '.__CLASS__.' class is deprecated since 3.11, to be removed in 4.0. '.
+            'Use Sonata\AdminBundle\Form\DataTransformer\ModelsToArrayTransformer instead.',
+            E_USER_DEPRECATED
+        );
         $this->choiceList = $choiceList;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function transform($collection)
     {
         if (null === $collection) {
@@ -74,9 +66,6 @@ class LegacyModelsToArrayTransformer implements DataTransformerInterface
         return $array;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function reverseTransform($keys)
     {
         $collection = $this->choiceList->getModelManager()->getModelCollectionInstance(
@@ -84,7 +73,7 @@ class LegacyModelsToArrayTransformer implements DataTransformerInterface
         );
 
         if (!$collection instanceof \ArrayAccess) {
-            throw new UnexpectedTypeException($collection, '\ArrayAccess');
+            throw new UnexpectedTypeException($collection, \ArrayAccess::class);
         }
 
         if ('' === $keys || null === $keys) {

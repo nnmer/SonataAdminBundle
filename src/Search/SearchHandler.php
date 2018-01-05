@@ -26,23 +26,19 @@ class SearchHandler
      */
     protected $pool;
 
-    /**
-     * @param Pool $pool
-     */
     public function __construct(Pool $pool)
     {
         $this->pool = $pool;
     }
 
     /**
-     * @param AdminInterface $admin
-     * @param string         $term
-     * @param int            $page
-     * @param int            $offset
-     *
-     * @return PagerInterface|false
+     * @param string $term
+     * @param int    $page
+     * @param int    $offset
      *
      * @throws \RuntimeException
+     *
+     * @return PagerInterface|false
      */
     public function search(AdminInterface $admin, $term, $page = 0, $offset = 20)
     {
